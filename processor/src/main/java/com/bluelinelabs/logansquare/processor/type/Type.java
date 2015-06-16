@@ -25,11 +25,12 @@ public abstract class Type {
     public static Type typeFor(TypeMirror typeMirror, TypeMirror typeConverterType, Elements elements, Types types) {
         TypeMirror genericClassTypeMirror = types.erasure(typeMirror);
 
-        boolean hasTypeConverter = typeConverterType != null && !typeConverterType.toString().equals("void");
+        //boolean hasTypeConverter = typeConverterType != null && !typeConverterType.toString().equals("void");
         boolean isCollection = !genericClassTypeMirror.toString().equals(typeMirror.toString()) || (typeMirror instanceof ArrayType);
 
-        if (!hasTypeConverter && isCollection) {
-            return ContainerType.containerTypeFor(typeMirror, genericClassTypeMirror, elements, types);
+        //if (!hasTypeConverter && isCollection) {
+        if (isCollection) {
+            return ContainerType.containerTypeFor(typeMirror, typeConverterType, genericClassTypeMirror, elements, types);
         } else {
             return FieldType.fieldTypeFor(typeMirror, typeConverterType, elements, types);
         }
