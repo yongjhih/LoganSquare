@@ -1,6 +1,24 @@
+buildscript {
+    repositories {
+        jcenter()
+    }
+}
+
 apply plugin: 'java'
+apply from: 'deploy.gradle'
+
+repositories {
+    jcenter()
+}
 
 ext.artifactId = 'logansquare'
+
+sourceCompatibility = 1.7
+targetCompatibility = 1.7
+
+repositories {
+    jcenter()
+}
 
 dependencies {
     compile 'com.fasterxml.jackson.core:jackson-core:2.5.1'

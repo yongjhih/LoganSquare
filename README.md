@@ -66,6 +66,7 @@ We're BlueLine Labs, a mobile app development company based in Chicago. We love 
 
 ##License
 
+    Copyright 2015 8tory, Inc.
     Copyright 2015 BlueLine Labs, Inc.
 
     Licensed under the Apache License, Version 2.0 (the "License");

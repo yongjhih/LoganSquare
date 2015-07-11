@@ -9,7 +9,6 @@ gen-external-apklibs
 # Gradle
 .gradle
 build
-gradle.properties
 
 # Maven
 target

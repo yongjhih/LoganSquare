@@ -1,10 +1,20 @@
+ext.artifactId = 'logansquare-compiler'
+
+buildscript {
+    repositories {
+        jcenter()
+    }
+}
+
 apply plugin: 'java'
+apply from: 'deploy.gradle'
 
 repositories {
     jcenter()
 }
 
-ext.artifactId = 'logansquare-compiler'
+sourceCompatibility = 1.7
+targetCompatibility = 1.7
 
 dependencies {
     compile 'org.apache.commons:commons-lang3:3.2'

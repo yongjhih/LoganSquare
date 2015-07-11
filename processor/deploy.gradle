@@ -1,94 +1,111 @@
-apply plugin: 'java'
-apply plugin: 'maven-publish'
-apply plugin: 'com.jfrog.bintray'
+/*
+ * Copyright 2013 Chris Banes
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
-sourceCompatibility = 1.7
-targetCompatibility = 1.7
+apply plugin: 'maven'
+apply plugin: 'signing'
 
-task sourcesJar(type: Jar, dependsOn: classes) {
-    classifier = 'sources'
-    from sourceSets.main.allSource
+def isReleaseBuild() {
+    return VERSION_NAME.contains("SNAPSHOT") == false
 }
 
-task javadocJar(type: Jar, dependsOn: javadoc) {
-    classifier = 'javadoc'
-    from javadoc.destinationDir
+def getReleaseRepositoryUrl() {
+    return hasProperty('RELEASE_REPOSITORY_URL') ? RELEASE_REPOSITORY_URL
+            : "https://oss.sonatype.org/service/local/staging/deploy/maven2/"
 }
 
-artifacts {
-    archives sourcesJar, javadocJar
+def getSnapshotRepositoryUrl() {
+    return hasProperty('SNAPSHOT_REPOSITORY_URL') ? SNAPSHOT_REPOSITORY_URL
+            : "https://oss.sonatype.org/content/repositories/snapshots/"
 }
 
-publishing {
-    publications {
-        mavenJava(MavenPublication) {
-            from components.java
-            artifact sourcesJar
-            artifact javadocJar
-            artifactId project.ext.artifactId
+def getRepositoryUsername() {
+    return hasProperty('BINTRAY_USER') ? BINTRAY_USER : ""
+}
 
-            pom.withXml {
-                def node = asNode()
-                node.appendNode('name', 'LoganSquare')
-                node.appendNode('description', 'Screaming fast JSON parsing and serialization library for Android.')
-                node.appendNode('url', 'https://github.com/bluelinelabs/LoganSquare')
+def getRepositoryPassword() {
+    return hasProperty('BINTRAY_KEY') ? BINTRAY_KEY : ""
+}
 
-                def organizationNode = node.appendNode('organization')
-                organizationNode.appendNode('name', 'BlueLine Labs')
-                organizationNode.appendNode('url', 'http://bluelinelabs.com')
+afterEvaluate { project ->
+    uploadArchives {
+        repositories {
+            mavenDeployer {
+                beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
 
-                def scmNode = node.appendNode('scm')
-                scmNode.appendNode('connection', 'scm:git:https://git.bluelinelabs.com/bluelinelabs/LoganSquare')
-                scmNode.appendNode('developerConnection', 'scm:git:https://git.bluelinelabs.com/bluelinelabs/LoganSquare')
-                scmNode.appendNode('url', 'https://git.bluelinelabs.com/bluelinelabs/LoganSquare')
+                pom.groupId = GROUP
+                pom.artifactId = POM_ARTIFACT_ID
+                pom.version = VERSION_NAME
 
-                def developersNode = node.appendNode('developers')
-                def ericNode = developersNode.appendNode('developer')
-                ericNode.appendNode('id', 'erickuck')
-                ericNode.appendNode('name', 'Eric Kuck')
+                repository(url: getReleaseRepositoryUrl()) {
+                    authentication(userName: getRepositoryUsername(), password: getRepositoryPassword())
+                }
+                snapshotRepository(url: getSnapshotRepositoryUrl()) {
+                    authentication(userName: getRepositoryUsername(), password: getRepositoryPassword())
+                }
 
-                def licensesNode = node.appendNode('licenses')
-                def licenseNode = licensesNode.appendNode('license')
-                licenseNode.appendNode('name', 'Apache 2.0')
-                licenseNode.appendNode('url', 'http://www.apache.org/licenses/LICENSE-2.0.txt')
+                pom.project {
+                    name POM_NAME
+                    packaging POM_PACKAGING
+                    description POM_DESCRIPTION
+                    url POM_URL
 
+                    scm {
+                        url POM_SCM_URL
+                        connection POM_SCM_CONNECTION
+                        developerConnection POM_SCM_DEV_CONNECTION
+                    }
+
+                    licenses {
+                        license {
+                            name POM_LICENCE_NAME
+                            url POM_LICENCE_URL
+                            distribution POM_LICENCE_DIST
+                        }
+                    }
+
+                    developers {
+                        developer {
+                            id POM_DEVELOPER_ID
+                            name POM_DEVELOPER_NAME
+                        }
+                    }
+                }
             }
         }
     }
-}
 
-bintray {
-    user = hasProperty('bintray_username') ? bintray_username : ""
-    key = hasProperty('bintray_api_key') ? bintray_api_key : ""
-    publications = ['mavenJava']
+    signing {
+        required { isReleaseBuild() && gradle.taskGraph.hasTask("uploadArchives") }
+        sign configurations.archives
+    }
 
-    dryRun = false
-    publish = false
+    // http://stackoverflow.com/questions/11474729/how-to-build-sources-jar-with-gradle
+    task javadocsJar(type: Jar, dependsOn: javadoc) {
+        classifier = 'javadoc'
+        from javadoc.destinationDir
+        //classpath += configurations.compile // http://stackoverflow.com/questions/10895032/javadoc-with-gradle-dont-get-the-libraries-while-running-javadoc-task
+    }
 
-    pkg {
-        repo = 'bluelinelabs'
-        userOrg = 'bluelinelabs'
-        name = 'LoganSquare'
-        desc = 'Screaming fast JSON parsing and serialization library for Android.'
-        websiteUrl = 'https://github.com/bluelinelabs/LoganSquare'
-        issueTrackerUrl = 'https://github.com/bluelinelabs/LoganSquare/issues'
-        vcsUrl = 'https://github.com/bluelinelabs/LoganSquare'
-        licenses = ['Apache-2.0']
-        labels = ['json', 'android', 'parser', 'serializer', 'jackson']
-        publicDownloadNumbers = true
-        version {
-            name = project.version
-            gpg {
-                sign = true
-                passphrase = hasProperty('bintray_gpg_passphrase') ? bintray_gpg_passphrase : ""
-            }
-            mavenCentralSync {
-                sync = false
-                user = hasProperty('maven_central_username') ? maven_central_username : ""
-                password = hasProperty('maven_central_password') ? maven_central_password : ""
-                close = '1'
-            }
-        }
+    task sourcesJar(type: Jar) {
+        classifier = 'sources'
+        from sourceSets.main.allSource
+    }
+
+    artifacts {
+        archives sourcesJar
+        archives javadocsJar
     }
 }
-
